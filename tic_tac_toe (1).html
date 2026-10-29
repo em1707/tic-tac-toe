@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>✕◯ Tic Tac Toe // BY: em1707</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Tone.js for Synthesized Cyber Audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- PeerJS for Zero-Config Global P2P Multiplayer on GitHub Pages -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#050510',
+                            panel: 'rgba(12, 16, 36, 0.78)',
+                            cyan: '#00f3ff',
+                            magenta: '#ff007f',
+                            purple: '#9d4edd',
+                            gold: '#ffbe0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #04040c;
+            color: #e2e8f0;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        .hud-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .hud-interactive {
+            pointer-events: auto;
+        }
+        .glass-panel {
+            background: rgba(10, 14, 32, 0.78);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 243, 255, 0.22);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 18px rgba(0, 243, 255, 0.06);
+        }
+        .glass-panel-magenta {
+            background: rgba(18, 10, 30, 0.78);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 0, 127, 0.28);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 18px rgba(255, 0, 127, 0.07);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 22px rgba(0, 243, 255, 0.4);
+        }
+        .neon-text-magenta {
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.8), 0 0 22px rgba(255, 0, 127, 0.4);
+        }
+        .neon-text-gold {
+            text-shadow: 0 0 10px rgba(255, 190, 11, 0.85), 0 0 22px rgba(255, 190, 11, 0.45);
+        }
+        .active-turn-cyan {
+            border-color: #00f3ff !important;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.45), inset 0 0 15px rgba(0, 243, 255, 0.2) !important;
+        }
+        .active-turn-magenta {
+            border-color: #ff007f !important;
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.45), inset 0 0 15px rgba(255, 0, 127, 0.2) !important;
+        }
+        .cyber-btn {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .cyber-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        .cyber-btn:active:not(:disabled) {
+            transform: translateY(0px) scale(0.98);
+        }
+        @keyframes floatUpFade {
+            0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+            15% { opacity: 1; transform: translateY(0px) scale(1.05); }
+            80% { opacity: 1; transform: translateY(-35px) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+        }
+        .emote-float {
+            animation: floatUpFade 2.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.04); }
+        }
+        .pulse-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 14, 32, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 243, 255, 0.35);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="relative select-none">
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating Emotes Container -->
+    <div id="emote-layer" class="fixed inset-0 pointer-events-none z-30 overflow-hidden"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-md"></div>
+
+    <!-- Main HUD Layer -->
+    <div class="hud-layer fixed inset-0 flex flex-col justify-between p-2.5 sm:p-4 md:p-6">
+
+        <!-- TOP BAR -->
+        <header class="w-full flex flex-wrap items-center justify-between gap-2">
+            <!-- Brand Title -->
+            <div class="glass-panel hud-interactive px-3.5 py-2 rounded-xl flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 font-orbitron font-black text-xs tracking-tighter text-slate-950">
+                    ✕◯
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="font-orbitron font-black text-sm sm:text-base tracking-wider text-white flex items-center gap-1.5">
+                            <span class="text-cyan-400 neon-text-cyan text-xs sm:text-sm">✕</span><span class="text-fuchsia-400 neon-text-magenta text-xs sm:text-sm">◯</span>
+                            <span>Tic Tac Toe</span>
+                        </h1>
+                        <span class="text-[10px] font-orbitron font-bold uppercase px-2 py-0.5 rounded-md bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/40 tracking-wider">
+                            BY: em1707
+                        </span>
+                        <span id="mode-badge" class="text-[10px] font-rajdhani font-bold uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">LOBBY</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-none hidden sm:block mt-0.5">Drag to Orbit 3D Board • Click Cell to Place</p>
+                </div>
+            </div>
+
+            <!-- Room Code Pill (Visible when in a room) -->
+            <div id="room-bar" class="hidden glass-panel hud-interactive px-3 py-1.5 rounded-xl flex items-center gap-2 border-cyan-400/40">
+                <div class="text-xs text-slate-300">
+                    <span class="text-slate-400 uppercase tracking-wider font-semibold">Room:</span>
+                    <span id="hud-room-code" class="font-orbitron font-bold text-cyan-300 neon-text-cyan tracking-widest ml-1 text-sm">------</span>
+                </div>
+                <button id="copy-room-btn" class="cyber-btn px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center gap-1.5" title="Copy Room Code">
+                    <i class="fa-regular fa-copy"></i>
+                    <span class="hidden sm:inline">Copy Code</span>
+                </button>
+            </div>
+
+            <!-- Utility Controls -->
+            <div class="flex items-center gap-2 hud-interactive">
+                <!-- Camera Preset Button -->
+                <button id="camera-view-btn" class="cyber-btn glass-panel px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-cyan-200 hover:text-white hover:border-cyan-400 flex items-center gap-1.5" title="Switch Camera View">
+                    <i class="fa-solid fa-video text-cyan-400"></i>
+                    <span id="camera-label" class="hidden md:inline">Angled 3D</span>
+                </button>
+
+                <!-- 2D Quick Pad Toggle (Great for accessibility/small screens) -->
+                <button id="toggle-2d-pad-btn" class="cyber-btn glass-panel px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-fuchsia-200 hover:text-white hover:border-fuchsia-400 flex items-center gap-1.5" title="Toggle Mini 2D Grid Overlay">
+                    <i class="fa-solid fa-table-cells text-fuchsia-400"></i>
+                    <span class="hidden lg:inline">Mini Pad</span>
+                </button>
+
+                <!-- Sound Toggle -->
+                <button id="sound-toggle-btn" class="cyber-btn glass-panel w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-cyan-300 hover:text-white hover:border-cyan-400" title="Toggle Synth Audio">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+
+                <!-- Lobby / Leave Room Button -->
+                <button id="open-lobby-btn" class="cyber-btn glass-panel px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-rose-300 hover:text-white hover:bg-rose-500/20 border-rose-500/30 flex items-center gap-1.5">
+                    <i class="fa-solid fa-Right-from-bracket"></i>
+                    <span id="lobby-btn-text">Rooms</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- MIDDLE SECTION: Scoreboard, Turn Banner & Optional Mini 2D Pad -->
+        <div class="w-full flex flex-col items-center justify-between my-auto pointer-events-none">
+            <!-- Turn Status Banner & Waiting Notice -->
+            <div id="game-hud-top" class="hidden fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-2xl flex flex-col items-center gap-2 pointer-events-none">
+
+                <!-- Player Score Cards Row -->
+                <div class="w-full grid grid-cols-3 gap-2 sm:gap-3 items-stretch hud-interactive">
+                    <!-- Player X Card -->
+                    <div id="card-player-x" class="glass-panel rounded-xl p-2 sm:p-3 flex flex-col justify-between transition-all duration-300">
+                        <div class="flex items-center justify-between gap-1">
+                            <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-orbitron font-black text-xs sm:text-sm flex items-center justify-center shrink-0">X</span>
+                                <div class="truncate">
+                                    <div id="name-player-x" class="font-bold text-xs sm:text-sm text-white truncate">Player X</div>
+                                    <div id="uid-player-x" class="text-[9px] text-slate-400 font-mono truncate" title="Player X UID">---</div>
+                                </div>
+                            </div>
+                            <span id="score-x" class="font-orbitron font-black text-lg sm:text-2xl text-cyan-300 neon-text-cyan">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Center Turn / Draws Status -->
+                    <div class="glass-panel rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div id="turn-indicator-badge" class="font-orbitron font-bold text-xs sm:text-sm tracking-wider uppercase text-cyan-300 neon-text-cyan">
+                            X'S TURN
+                        </div>
+                        <div id="sub-status-text" class="text-[11px] sm:text-xs text-slate-300 font-medium mt-0.5">
+                            Tap any 3D tile
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-1 border-t border-slate-700/60 pt-0.5 w-full">
+                            Draws: <span id="score-draws" class="font-orbitron font-bold text-amber-300">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Player O Card -->
+                    <div id="card-player-o" class="glass-panel-magenta rounded-xl p-2 sm:p-3 flex flex-col justify-between transition-all duration-300">
+                        <div class="flex items-center justify-between gap-1">
+                            <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-fuchsia-500/20 border border-fuchsia-400 text-fuchsia-300 font-orbitron font-black text-xs sm:text-sm flex items-center justify-center shrink-0">O</span>
+                                <div class="truncate">
+                                    <div id="name-player-o" class="font-bold text-xs sm:text-sm text-white truncate">Waiting...</div>
+                                    <div id="uid-player-o" class="text-[9px] text-slate-400 font-mono truncate" title="Player O UID">---</div>
+                                </div>
+                            </div>
+                            <span id="score-o" class="font-orbitron font-black text-lg sm:text-2xl text-fuchsia-300 neon-text-magenta">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waiting for Friend Banner -->
+                <div id="waiting-friend-banner" class="hidden glass-panel hud-interactive px-4 py-2 rounded-xl border border-amber-400/40 bg-amber-950/40 text-amber-200 text-xs sm:text-sm flex items-center justify-between gap-3 w-full shadow-lg">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span>Share room code <strong id="banner-room-code" class="font-orbitron text-white tracking-widest">------</strong> with your friend!</span>
+                    </div>
+                    <button id="banner-copy-btn" class="cyber-btn px-2.5 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/50 text-amber-100 font-bold text-xs shrink-0">
+                        <i class="fa-regular fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Optional Mini 2D Pad Overlay (Toggled by user for rapid tapping) -->
+            <div id="mini-2d-pad" class="hidden fixed right-4 bottom-20 z-20 glass-panel hud-interactive p-2.5 rounded-2xl border border-cyan-500/30 shadow-2xl">
+                <div class="text-[10px] font-orbitron uppercase tracking-wider text-center text-slate-400 mb-1.5">Quick 2D Pad</div>
+                <div id="mini-grid-cells" class="grid grid-cols-3 gap-1.5 w-28 h-28">
+                    <!-- 9 buttons populated by JS -->
+                </div>
+            </div>
+
+            <!-- Victory / Draw / Rematch Action Bar -->
+            <div id="result-banner" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-md glass-panel hud-interactive p-4 rounded-2xl border-2 border-cyan-400/60 shadow-2xl flex flex-col items-center text-center gap-3">
+                <div id="result-title" class="font-orbitron font-black text-xl sm:text-2xl tracking-wider uppercase neon-text-cyan text-cyan-300">
+                    PLAYER X WINS!
+                </div>
+                <p id="result-subtitle" class="text-xs sm:text-sm text-slate-300">
+                    3D plasma alignment achieved! Ready for a rematch?
+                </p>
+                <div class="flex items-center gap-3 w-full justify-center">
+                    <button id="rematch-btn" class="cyber-btn px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-orbitron font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-cyan-500/30 flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Play Again / Rematch
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM BAR: Emote Reactions, User Identity & Copyright -->
+        <footer class="w-full flex flex-col gap-1.5">
+            <div class="w-full flex flex-wrap items-center justify-between gap-2">
+                <!-- User ID & Connection Status Pill -->
+                <div class="glass-panel hud-interactive px-3 py-1.5 rounded-xl flex items-center gap-2 max-w-full overflow-hidden">
+                    <span id="conn-dot" class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                    <span class="text-[11px] text-slate-400 shrink-0">Your ID:</span>
+                    <span id="my-full-uid" class="text-[11px] font-mono text-cyan-300 select-all truncate">Connecting...</span>
+                </div>
+
+                <!-- Live Emote Bar -->
+                <div id="emote-bar" class="glass-panel hud-interactive px-2.5 py-1.5 rounded-xl flex items-center gap-1 sm:gap-1.5 overflow-x-auto max-w-full">
+                    <span class="text-[10px] font-orbitron uppercase text-slate-400 px-1 hidden sm:inline">Holochat:</span>
+                    <button data-emote="⚡" class="emote-btn cyber-btn px-2 py-1 rounded-lg hover:bg-white/10 text-sm sm:text-base" title="Send Zap">⚡</button>
+                    <button data-emote="🔥" class="emote-btn cyber-btn px-2 py-1 rounded-lg hover:bg-white/10 text-sm sm:text-base" title="Send Fire">🔥</button>
+                    <button data-emote="🚀" class="emote-btn cyber-btn px-2 py-1 rounded-lg hover:bg-white/10 text-sm sm:text-base" title="Send Rocket">🚀</button>
+                    <button data-emote="😎" class="emote-btn cyber-btn px-2 py-1 rounded-lg hover:bg-white/10 text-sm sm:text-base" title="Send Cool">😎</button>
+                    <button data-emote="😱" class="emote-btn cyber-btn px-2 py-1 rounded-lg hover:bg-white/10 text-sm sm:text-base" title="Send Shock">😱</button>
+                    <button data-emote="GG!" class="emote-btn cyber-btn px-2 py-1 rounded-lg bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-orbitron font-bold text-[10px] sm:text-xs">GG!</button>
+                    <button data-emote="NICE!" class="emote-btn cyber-btn px-2 py-1 rounded-lg bg-fuchsia-500/15 border border-fuchsia-400/30 text-fuchsia-300 font-orbitron font-bold text-[10px] sm:text-xs">NICE!</button>
+                </div>
+            </div>
+
+            <!-- Copyright & Attribution Bar -->
+            <div class="w-full flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400/90 px-1 font-rajdhani tracking-wider">
+                <span><strong class="text-cyan-300 font-orbitron">✕◯ Tic Tac Toe</strong> • Crafted <strong class="text-fuchsia-300 font-orbitron">BY: em1707</strong></span>
+                <span>© 2026 em1707. All Rights Reserved.</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- LOBBY & ROOM SELECTION MODAL -->
+    <div id="lobby-modal" class="fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-5 sm:p-7 border border-cyan-400/40 shadow-2xl max-h-[92vh] overflow-y-auto flex flex-col gap-5">
+
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-700/70 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-400 via-indigo-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 font-orbitron font-black text-base text-slate-950">
+                        ✕◯
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="font-orbitron font-black text-lg sm:text-xl text-white tracking-wide flex items-center gap-1.5">
+                                <span class="text-cyan-400 neon-text-cyan">✕</span><span class="text-fuchsia-400 neon-text-magenta">◯</span>
+                                <span>Tic Tac Toe</span>
+                            </h2>
+                            <span class="text-[10px] font-orbitron font-bold uppercase px-2.5 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/40 neon-text-magenta">
+                                BY: em1707
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-0.5">Play 3D Tic Tac Toe with friends anywhere in real-time</p>
+                    </div>
+                </div>
+                <button id="close-lobby-btn" class="hidden cyber-btn w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 flex items-center justify-center" title="Return to Active Board">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Player Nickname Input -->
+            <div>
+                <label class="block text-xs font-orbitron uppercase tracking-wider text-cyan-300 mb-1.5">
+                    <i class="fa-solid fa-user-astronaut mr-1"></i>Your Pilot Callsign
+                </label>
+                <input id="player-name-input" type="text" maxlength="16" placeholder="e.g. StarLord, Nova, CyberFox..."
+                    class="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 focus:border-cyan-300 focus:outline-none text-white font-semibold text-sm tracking-wide">
+            </div>
+
+            <!-- Create or Join Room Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <!-- Create Room Box -->
+                <div class="p-4 rounded-2xl bg-gradient-to-b from-cyan-950/40 to-slate-900/60 border border-cyan-500/30 flex flex-col justify-between gap-3">
+                    <div>
+                        <h3 class="font-orbitron font-bold text-sm text-cyan-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle"></i> Create New Room
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Generate a 6-digit cosmic room code to share with your friend.</p>
+                    </div>
+                    <button id="create-room-btn" class="cyber-btn w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-satellite-dish"></i> Host 3D Room
+                    </button>
+                </div>
+
+                <!-- Join Room Box -->
+                <div class="p-4 rounded-2xl bg-gradient-to-b from-fuchsia-950/40 to-slate-900/60 border border-fuchsia-500/30 flex flex-col justify-between gap-3">
+                    <div>
+                        <h3 class="font-orbitron font-bold text-sm text-fuchsia-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt"></i> Join Friend's Room
+                        </h3>
+                        <input id="join-code-input" type="text" maxlength="6" placeholder="ENTER CODE"
+                            class="mt-2 w-full px-3 py-2 rounded-xl bg-slate-950/90 border border-fuchsia-500/40 focus:border-fuchsia-400 focus:outline-none text-center font-orbitron font-bold text-sm uppercase tracking-widest text-fuchsia-200">
+                    </div>
+                    <button id="join-room-btn" class="cyber-btn w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-400 hover:to-purple-500 text-white font-orbitron font-black text-xs uppercase tracking-wider shadow-lg shadow-fuchsia-500/25 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-to-bracket"></i> Join Room
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Public Open Rooms Feed -->
+            <div class="rounded-2xl bg-slate-950/60 border border-slate-800 p-3.5">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-orbitron uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Open Rooms Waiting for Friend
+                    </span>
+                    <span id="open-rooms-count" class="text-[11px] text-cyan-400 font-mono">0 active</span>
+                </div>
+                <div id="open-rooms-list" class="max-h-32 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                    <div class="text-xs text-slate-500 text-center py-3">Scanning cosmic frequencies for open rooms...</div>
+                </div>
+            </div>
+
+            <!-- Solo / AI Practice Mode Button -->
+            <div class="pt-1 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                <div class="text-xs text-slate-400">
+                    Want to warm up while waiting for your friend?
+                </div>
+                <button id="start-ai-btn" class="cyber-btn px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 font-orbitron font-bold text-xs uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+                    <i class="fa-solid fa-robot"></i> vs Cyber-AI
+                </button>
+            </div>
+
+            <!-- Modal Footer Copyright -->
+            <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400 font-rajdhani">
+                <span><strong class="text-cyan-300 font-orbitron">✕◯ Tic Tac Toe</strong> — <span class="text-fuchsia-300 font-semibold">BY: em1707</span></span>
+                <span>© 2026 em1707. All Rights Reserved.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE & APPLICATION SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ============================================================================
+        // 0. EXTERNAL HOSTING CONFIGURATION (GitHub Pages / Vercel / Netlify)
+        // If you host this index.html outside of this preview environment, paste your
+        // free Firebase Web App config object into EXTERNAL_FIREBASE_CONFIG below.
+        // ============================================================================
+        const EXTERNAL_FIREBASE_CONFIG = null;
+        /* Example for External Hosting:
+        const EXTERNAL_FIREBASE_CONFIG = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+        */
+
+        // ============================================================================
+        // 1. GLOBAL STATE & CONFIGURATION
+        // ============================================================================
+        const WIN_LINES = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        const state = {
+            user: null,
+            netEngine: "firebase", // "firebase" | "p2p"
+            p2pPeer: null,
+            p2pConn: null,
+            nickname: "Pilot-" + Math.floor(100 + Math.random() * 899),
+            mode: "lobby", // "lobby" | "online" | "ai"
+            roomCode: null,
+            roomData: null,
+            unsubscribeRoom: null,
+            unsubscribeLobby: null,
+            soundEnabled: true,
+            lastEmoteTimestamp: 0,
+            lastAnimatedBoard: Array(9).fill(""),
+            lastStatus: "waiting",
+            // Local AI State
+            aiBoard: Array(9).fill(""),
+            aiTurn: "X",
+            aiStatus: "playing",
+            aiWinner: null,
+            aiWinLine: null,
+            aiScores: { X: 0, O: 0, draws: 0 },
+            aiStartingTurn: "X"
+        };
+
+        // Initialize Nickname Input
+        const nameInput = document.getElementById("player-name-input");
+        nameInput.value = state.nickname;
+
+        // ============================================================================
+        // 2. SYNTHESIZED CYBER AUDIO ENGINE (TONE.JS)
+        // ============================================================================
+        let audioReady = false;
+        let polySynth = null;
+        let bassSynth = null;
+
+        async function initAudio() {
+            if (audioReady || !state.soundEnabled) return;
+            try {
+                await Tone.start();
+                polySynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.01, decay: 0.18, sustain: 0.05, release: 0.4 }
+                }).toDestination();
+                polySynth.volume.value = -8;
+
+                bassSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.04,
+                    octaves: 4,
+                    envelope: { attack: 0.005, decay: 0.25, sustain: 0 }
+                }).toDestination();
+                bassSynth.volume.value = -10;
+
+                audioReady = true;
+            } catch (e) {
+                console.warn("Audio init skipped:", e);
+            }
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            if (!audioReady) initAudio();
+            if (!polySynth) return;
+
+            try {
+                const now = Tone.now();
+                if (type === "placeX") {
+                    polySynth.triggerAttackRelease(["C5", "G5"], "16n", now);
+                    bassSynth.triggerAttackRelease("C2", "16n", now);
+                } else if (type === "placeO") {
+                    polySynth.triggerAttackRelease(["A4", "E5"], "16n", now);
+                    bassSynth.triggerAttackRelease("A1", "16n", now);
+                } else if (type === "hover") {
+                    polySynth.triggerAttackRelease(["E6"], "64n", now, 0.15);
+                } else if (type === "win") {
+                    polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+                    polySynth.triggerAttackRelease(["E4", "G4", "B4", "E5"], "8n", now + 0.16);
+                    polySynth.triggerAttackRelease(["G4", "C5", "E5", "G5"], "4n", now + 0.32);
+                } else if (type === "draw") {
+                    polySynth.triggerAttackRelease(["F4", "B4"], "8n", now);
+                    polySynth.triggerAttackRelease(["E4", "Bb4"], "4n", now + 0.18);
+                } else if (type === "join") {
+                    polySynth.triggerAttackRelease(["D5", "A5"], "16n", now);
+                } else if (type === "emote") {
+                    polySynth.triggerAttackRelease(["G5", "D6"], "32n", now, 0.4);
+                }
+            } catch (e) {
+                // Ignore audio timing collisions
+            }
+        }
+
+        // ============================================================================
+        // 3. UI TOASTS, CLIPBOARD & EMOTE HELPERS
+        // ============================================================================
+        function showToast(message, variant = "cyan") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            const borderColors = {
+                cyan: "border-cyan-400 text-cyan-200",
+                magenta: "border-fuchsia-400 text-fuchsia-200",
+                amber: "border-amber-400 text-amber-200"
+            };
+            toast.className = `glass-panel px-4 py-2.5 rounded-xl border ${borderColors[variant] || borderColors.cyan} text-xs sm:text-sm font-semibold shadow-xl flex items-center gap-2 transition-all duration-300`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                toast.style.transform = "translateY(-8px)";
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function copyTextToClipboard(text) {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand("copy");
+                showToast(`Room Code "${text}" copied to clipboard!`, "cyan");
+            } catch (err) {
+                showToast(`Room Code: ${text}`, "amber");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function spawnFloatingEmote(text, senderName, symbol) {
+            playSound("emote");
+            const layer = document.getElementById("emote-layer");
+            const el = document.createElement("div");
+            const leftPos = 20 + Math.random() * 60;
+            const colorClass = symbol === "O" ? "border-fuchsia-400 text-fuchsia-200" : "border-cyan-400 text-cyan-200";
+            el.style.left = `${leftPos}%`;
+            el.style.bottom = "14%";
+            el.className = `fixed emote-float glass-panel px-3.5 py-2 rounded-2xl border ${colorClass} shadow-2xl flex items-center gap-2`;
+            el.innerHTML = `
+                <span class="text-xl sm:text-2xl">${text}</span>
+                <span class="text-xs font-orbitron font-bold opacity-85">${senderName}</span>
+            `;
+            layer.appendChild(el);
+            setTimeout(() => el.remove(), 2600);
+        }
+
+        // ============================================================================
+        // 4. THREE.JS 3D HOLOGRAPHIC GAME ENGINE
+        // ============================================================================
+        const container = document.getElementById("canvas-container");
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x04040c, 0.028);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Camera Orbit State
+        const camPresets = [
+            { name: "Angled 3D", theta: 0, phi: 0.78, radius: 13.5 },
+            { name: "Top-Down", theta: 0, phi: 0.08, radius: 14.5 },
+            { name: "Dynamic Orbit", theta: 0.4, phi: 0.92, radius: 13.8, autoRotate: true }
+        ];
+        let currentPresetIndex = 0;
+        const camSpherical = {
+            theta: camPresets[0].theta,
+            phi: camPresets[0].phi,
+            radius: camPresets[0].radius,
+            targetTheta: camPresets[0].theta,
+            targetPhi: camPresets[0].phi,
+            targetRadius: camPresets[0].radius,
+            autoRotate: false
+        };
+
+        function updateResponsiveCameraDistance() {
+            const aspect = window.innerWidth / window.innerHeight;
+            const baseR = camPresets[currentPresetIndex].radius;
+            // Zoom out slightly on narrow mobile screens so the entire 3D board fits comfortably
+            camSpherical.targetRadius = aspect < 0.75 ? baseR * 1.32 : aspect < 1.0 ? baseR * 1.15 : baseR;
+        }
+        updateResponsiveCameraDistance();
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x283266, 1.4);
+        scene.add(ambientLight);
+
+        const cyanLight = new THREE.PointLight(0x00f3ff, 2.2, 35);
+        cyanLight.position.set(-7, 8, 7);
+        scene.add(cyanLight);
+
+        const magentaLight = new THREE.PointLight(0xff007f, 2.2, 35);
+        magentaLight.position.set(7, 8, -7);
+        scene.add(magentaLight);
+
+        const topLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        topLight.position.set(0, 15, 5);
+        scene.add(topLight);
+
+        // Root Board Group (Tilts & Levitates Gently)
+        const boardGroup = new THREE.Group();
+        scene.add(boardGroup);
+
+        // Base Dark Cyber Platform under the Grid
+        const baseGeo = new THREE.CylinderGeometry(5.6, 6.2, 0.45, 8);
+        const baseMat = new THREE.MeshStandardMaterial({
+            color: 0x090d1e,
+            metalness: 0.8,
+            roughness: 0.25,
+            emissive: 0x050818
+        });
+        const basePlatform = new THREE.Mesh(baseGeo, baseMat);
+        basePlatform.position.y = -0.45;
+        basePlatform.rotation.y = Math.PI / 8;
+        boardGroup.add(basePlatform);
+
+        // Platform Outer Neon Ring
+        const ringGeo = new THREE.TorusGeometry(5.95, 0.06, 16, 64);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.55 });
+        const platformRing = new THREE.Mesh(ringGeo, ringMat);
+        platformRing.rotation.x = Math.PI / 2;
+        platformRing.position.y = -0.25;
+        boardGroup.add(platformRing);
+
+        // 3D Neon Grid Bars (#)
+        const CELL_SPACING = 2.55;
+        const barPositions = [
+            { x: -CELL_SPACING / 2, z: 0, rotY: 0 },
+            { x: CELL_SPACING / 2, z: 0, rotY: 0 },
+            { x: 0, z: -CELL_SPACING / 2, rotY: Math.PI / 2 },
+            { x: 0, z: CELL_SPACING / 2, rotY: Math.PI / 2 }
+        ];
+
+        const barGeo = new THREE.CylinderGeometry(0.11, 0.11, 7.6, 20);
+        const barMat = new THREE.MeshStandardMaterial({
+            color: 0x00f3ff,
+            emissive: 0x00a8ff,
+            emissiveIntensity: 0.85,
+            roughness: 0.15,
+            metalness: 0.7
+        });
+
+        barPositions.forEach(pos => {
+            const bar = new THREE.Mesh(barGeo, barMat);
+            bar.rotation.x = Math.PI / 2;
+            bar.rotation.z = pos.rotY;
+            bar.position.set(pos.x, 0.05, pos.z);
+            boardGroup.add(bar);
+        });
+
+        // 9 Interactive Cell Hit-Tiles & Hover Previews
+        const cellMeshes = [];
+        const cellCoords = [];
+        const piecesGroup = new THREE.Group();
+        boardGroup.add(piecesGroup);
+        const activePieceMeshes = Array(9).fill(null);
+
+        for (let i = 0; i < 9; i++) {
+            const row = Math.floor(i / 3);
+            const col = i % 3;
+            const x = (col - 1) * CELL_SPACING;
+            const z = (row - 1) * CELL_SPACING;
+            cellCoords.push(new THREE.Vector3(x, 0.25, z));
+
+            // Interactive Tile Pedestal
+            const tileGeo = new THREE.BoxGeometry(2.15, 0.16, 2.15);
+            const tileMat = new THREE.MeshStandardMaterial({
+                color: 0x111936,
+                emissive: 0x00f3ff,
+                emissiveIntensity: 0.05,
+                metalness: 0.6,
+                roughness: 0.3,
+                transparent: true,
+                opacity: 0.75
+            });
+            const tile = new THREE.Mesh(tileGeo, tileMat);
+            tile.position.set(x, -0.1, z);
+            tile.userData = { cellIndex: i };
+            boardGroup.add(tile);
+            cellMeshes.push(tile);
+        }
+
+        // Ghost Hover Mesh (Shows translucent X or O before clicking)
+        const hoverPreviewGroup = new THREE.Group();
+        hoverPreviewGroup.visible = false;
+        boardGroup.add(hoverPreviewGroup);
+
+        function createPieceMesh(symbol, isGhost = false) {
+            const group = new THREE.Group();
+            if (symbol === "X") {
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x00f3ff,
+                    emissive: 0x00f3ff,
+                    emissiveIntensity: isGhost ? 0.35 : 0.9,
+                    metalness: 0.5,
+                    roughness: 0.15,
+                    transparent: isGhost,
+                    opacity: isGhost ? 0.4 : 1.0
+                });
+                const bladeGeo = new THREE.BoxGeometry(1.85, 0.32, 0.34);
+                const b1 = new THREE.Mesh(bladeGeo, mat);
+                b1.rotation.y = Math.PI / 4;
+                const b2 = new THREE.Mesh(bladeGeo, mat);
+                b2.rotation.y = -Math.PI / 4;
+                group.add(b1, b2);
+            } else {
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0xff007f,
+                    emissive: 0xff007f,
+                    emissiveIntensity: isGhost ? 0.35 : 0.9,
+                    metalness: 0.5,
+                    roughness: 0.15,
+                    transparent: isGhost,
+                    opacity: isGhost ? 0.4 : 1.0
+                });
+                const torusGeo = new THREE.TorusGeometry(0.68, 0.19, 20, 48);
+                const ring = new THREE.Mesh(torusGeo, mat);
+                ring.rotation.x = Math.PI / 2;
+                group.add(ring);
+            }
+            return group;
+        }
+
+        const ghostX = createPieceMesh("X", true);
+        const ghostO = createPieceMesh("O", true);
+        hoverPreviewGroup.add(ghostX, ghostO);
+
+        // Winning 3D Laser Beam
+        let winBeamMesh = null;
+        function clearWinBeam() {
+            if (winBeamMesh) {
+                boardGroup.remove(winBeamMesh);
+                winBeamMesh.geometry.dispose();
+                winBeamMesh.material.dispose();
+                winBeamMesh = null;
+            }
+        }
+
+        function drawWinBeam(lineIndices, winnerSymbol) {
+            clearWinBeam();
+            if (!lineIndices || lineIndices.length !== 3) return;
+            const start = cellCoords[lineIndices[0]];
+            const end = cellCoords[lineIndices[2]];
+            const distance = start.distanceTo(end) + 1.2;
+
+            const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, distance, 20);
+            const beamColor = winnerSymbol === "O" ? 0xff007f : 0x00f3ff;
+            const beamMat = new THREE.MeshBasicMaterial({
+                color: beamColor
+            });
+            winBeamMesh = new THREE.Mesh(beamGeo, beamMat);
+
+            const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+            mid.y = 0.35;
+            winBeamMesh.position.copy(mid);
+
+            // Orient cylinder from start to end
+            const dir = new THREE.Vector3().subVectors(end, start).normalize();
+            const up = new THREE.Vector3(0, 1, 0);
+            winBeamMesh.quaternion.setFromUnitVectors(up, dir);
+            boardGroup.add(winBeamMesh);
+        }
+
+        // Particle Burst System when placing a piece or winning
+        const particleSystems = [];
+        function spawnParticles(position, colorHex, count = 28) {
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = position.x;
+                positions[i * 3 + 1] = position.y;
+                positions[i * 3 + 2] = position.z;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.04 + Math.random() * 0.14;
+                velocities.push({
+                    vx: Math.cos(angle) * speed,
+                    vy: 0.04 + Math.random() * 0.14,
+                    vz: Math.sin(angle) * speed
+                });
+            }
+            geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({
+                color: colorHex,
+                size: 0.22,
+                transparent: true,
+                opacity: 1
+            });
+            const points = new THREE.Points(geo, mat);
+            boardGroup.add(points);
+            particleSystems.push({ points, velocities, life: 1.0 });
+        }
+
+        // Cosmic Background Starfield
+        const starsGeo = new THREE.BufferGeometry();
+        const STAR_COUNT = 700;
+        const starPositions = new Float32Array(STAR_COUNT * 3);
+        for (let i = 0; i < STAR_COUNT; i++) {
+            starPositions[i * 3] = (Math.random() - 0.5) * 90;
+            starPositions[i * 3 + 1] = (Math.random() - 0.5) * 60;
+            starPositions[i * 3 + 2] = (Math.random() - 0.5) * 90;
+        }
+        starsGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+        const starsMat = new THREE.PointsMaterial({ color: 0x8be9fd, size: 0.18, transparent: true, opacity: 0.75 });
+        const starField = new THREE.Points(starsGeo, starsMat);
+        scene.add(starField);
+
+        // Synchronize 3D Pieces with Board Array
+        function sync3DBoard(boardArray, winLine = null, winner = null) {
+            for (let i = 0; i < 9; i++) {
+                const val = boardArray[i];
+                const prevVal = state.lastAnimatedBoard[i];
+
+                if (val !== prevVal) {
+                    // Remove existing mesh if any
+                    if (activePieceMeshes[i]) {
+                        piecesGroup.remove(activePieceMeshes[i]);
+                        activePieceMeshes[i] = null;
+                    }
+                    if (val === "X" || val === "O") {
+                        const mesh = createPieceMesh(val, false);
+                        mesh.position.copy(cellCoords[i]);
+                        mesh.position.y = 2.6; // Drop in from above
+                        mesh.scale.set(0.1, 0.1, 0.1);
+                        mesh.userData = { targetY: 0.28, isWinningPiece: false };
+                        piecesGroup.add(mesh);
+                        activePieceMeshes[i] = mesh;
+
+                        spawnParticles(cellCoords[i], val === "X" ? 0x00f3ff : 0xff007f, 30);
+                        playSound(val === "X" ? "placeX" : "placeO");
+                    }
+                    state.lastAnimatedBoard[i] = val;
+                }
+
+                if (activePieceMeshes[i]) {
+                    activePieceMeshes[i].userData.isWinningPiece = Array.isArray(winLine) && winLine.includes(i);
+                }
+            }
+
+            if (winLine && winLine.length === 3) {
+                drawWinBeam(winLine, winner);
+            } else {
+                clearWinBeam();
+            }
+        }
+
+        // ============================================================================
+        // 5. POINTER INTERACTION (RAYCASTER + CAMERA DRAG ORBIT)
+        // ============================================================================
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        let isDragging = false;
+        let dragDistance = 0;
+        let prevPointer = { x: 0, y: 0 };
+        let hoveredCellIndex = -1;
+
+        function canLocalPlayerMove() {
+            if (state.mode === "ai") {
+                return state.aiStatus === "playing" && state.aiTurn === "X";
+            }
+            if (state.mode === "online" && state.roomData && state.user) {
+                const r = state.roomData;
+                if (r.status !== "playing") return false;
+                if (r.turn === "X" && r.playerX?.uid === state.user.uid) return true;
+                if (r.turn === "O" && r.playerO?.uid === state.user.uid) return true;
+            }
+            return false;
+        }
+
+        function getMySymbol() {
+            if (state.mode === "ai") return "X";
+            if (state.mode === "online" && state.roomData && state.user) {
+                if (state.roomData.playerX?.uid === state.user.uid) return "X";
+                if (state.roomData.playerO?.uid === state.user.uid) return "O";
+            }
+            return "X";
+        }
+
+        function getCurrentBoard() {
+            if (state.mode === "ai") return state.aiBoard;
+            if (state.mode === "online" && state.roomData) return state.roomData.board || Array(9).fill("");
+            return Array(9).fill("");
+        }
+
+        function updateHoverState(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObjects(cellMeshes);
+
+            // Reset all tiles
+            cellMeshes.forEach(tile => {
+                tile.material.emissiveIntensity = 0.05;
+            });
+
+            if (intersects.length > 0 && !isDragging) {
+                const idx = intersects[0].object.userData.cellIndex;
+                const board = getCurrentBoard();
+                if (board[idx] === "" && canLocalPlayerMove()) {
+                    if (hoveredCellIndex !== idx) {
+                        hoveredCellIndex = idx;
+                        playSound("hover");
+                    }
+                    intersects[0].object.material.emissiveIntensity = 0.45;
+                    hoverPreviewGroup.visible = true;
+                    hoverPreviewGroup.position.copy(cellCoords[idx]);
+                    const mySym = getMySymbol();
+                    ghostX.visible = mySym === "X";
+                    ghostO.visible = mySym === "O";
+                    document.body.style.cursor = "pointer";
+                    return idx;
+                }
+            }
+
+            hoveredCellIndex = -1;
+            hoverPreviewGroup.visible = false;
+            document.body.style.cursor = "default";
+            return -1;
+        }
+
+        const domElem = renderer.domElement;
+
+        domElem.addEventListener("pointerdown", (e) => {
+            initAudio();
+            isDragging = true;
+            dragDistance = 0;
+            prevPointer.x = e.clientX;
+            prevPointer.y = e.clientY;
+        });
+
+        window.addEventListener("pointermove", (e) => {
+            if (isDragging) {
+                const dx = e.clientX - prevPointer.x;
+                const dy = e.clientY - prevPointer.y;
+                dragDistance += Math.hypot(dx, dy);
+                prevPointer.x = e.clientX;
+                prevPointer.y = e.clientY;
+
+                if (dragDistance > 6) {
+                    camSpherical.autoRotate = false;
+                    camSpherical.targetTheta -= dx * 0.007;
+                    camSpherical.targetPhi = Math.max(0.08, Math.min(1.28, camSpherical.targetPhi - dy * 0.006));
+                }
+            } else {
+                updateHoverState(e.clientX, e.clientY);
+            }
+        });
+
+        window.addEventListener("pointerup", (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            if (dragDistance < 10) {
+                // Treat as click/tap on a 3D cell
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(pointer, camera);
+                const intersects = raycaster.intersectObjects(cellMeshes);
+                if (intersects.length > 0) {
+                    const cellIndex = intersects[0].object.userData.cellIndex;
+                    handleCellClick(cellIndex);
+                }
+            }
+        });
+
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateResponsiveCameraDistance();
+        });
+
+        // ============================================================================
+        // 6. GAMEPLAY LOGIC (WIN DETECTION, ONLINE MOVES & AI MOVES)
+        // ============================================================================
+        function evaluateBoard(board) {
+            for (const line of WIN_LINES) {
+                const [a, b, c] = line;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return { status: "won", winner: board[a], winLine: line };
+                }
+            }
+            if (board.every(cell => cell !== "")) {
+                return { status: "draw", winner: "draw", winLine: null };
+            }
+            return { status: "playing", winner: null, winLine: null };
+        }
+
+        async function handleCellClick(index) {
+            hoverPreviewGroup.visible = false;
+            if (!canLocalPlayerMove()) return;
+
+            if (state.mode === "ai") {
+                if (state.aiBoard[index] !== "") return;
+                state.aiBoard[index] = "X";
+                const result = evaluateBoard(state.aiBoard);
+                if (result.status !== "playing") {
+                    finishAiGame(result);
+                } else {
+                    state.aiTurn = "O";
+                    updateHUD();
+                    sync3DBoard(state.aiBoard, null, null);
+                    setTimeout(makeCyberAiMove, 480);
+                }
+                return;
+            }
+
+            if (state.mode === "online" && state.roomData && state.user) {
+                const r = state.roomData;
+                const board = [...r.board];
+                if (board[index] !== "") return;
+
+                const mySymbol = r.playerX?.uid === state.user.uid ? "X" : "O";
+                if (r.turn !== mySymbol) return;
+
+                board[index] = mySymbol;
+                const evalRes = evaluateBoard(board);
+                const nextTurn = mySymbol === "X" ? "O" : "X";
+
+                const updatedScores = { ...(r.scores || { X: 0, O: 0, draws: 0 }) };
+                if (evalRes.status === "won") {
+                    updatedScores[evalRes.winner] = (updatedScores[evalRes.winner] || 0) + 1;
+                } else if (evalRes.status === "draw") {
+                    updatedScores.draws = (updatedScores.draws || 0) + 1;
+                }
+
+                const nextStatePatch = {
+                    board,
+                    turn: nextTurn,
+                    status: evalRes.status,
+                    winner: evalRes.winner,
+                    winLine: evalRes.winLine ? JSON.stringify(evalRes.winLine) : null,
+                    scores: updatedScores,
+                    updatedAt: Date.now()
+                };
+
+                if (state.netEngine === "p2p") {
+                    applyRoomUpdateP2P({ ...r, ...nextStatePatch }, true);
+                    return;
+                }
+
+                try {
+                    const roomRef = getRoomDocRef(state.roomCode);
+                    await updateDoc(roomRef, nextStatePatch);
+                } catch (err) {
+                    console.error("Failed to update move:", err);
+                    showToast("Network sync error. Try again.", "amber");
+                }
+            }
+        }
+
+        // Smart Minimax-inspired Cyber-AI for Solo Warmup
+        function makeCyberAiMove() {
+            if (state.mode !== "ai" || state.aiStatus !== "playing") return;
+            const b = state.aiBoard;
+
+            // 1. Can AI win immediately?
+            for (let i = 0; i < 9; i++) {
+                if (b[i] === "") {
+                    b[i] = "O";
+                    if (evaluateBoard(b).winner === "O") {
+                        finishAiGame(evaluateBoard(b));
+                        return;
+                    }
+                    b[i] = "";
+                }
+            }
+            // 2. Must AI block Player X?
+            for (let i = 0; i < 9; i++) {
+                if (b[i] === "") {
+                    b[i] = "X";
+                    if (evaluateBoard(b).winner === "X") {
+                        b[i] = "O";
+                        const res = evaluateBoard(b);
+                        if (res.status !== "playing") finishAiGame(res);
+                        else {
+                            state.aiTurn = "X";
+                            sync3DBoard(b, null, null);
+                            updateHUD();
+                        }
+                        return;
+                    }
+                    b[i] = "";
+                }
+            }
+            // 3. Take Center or Corners or Random
+            const preferred = [4, 0, 2, 6, 8, 1, 3, 5, 7].filter(idx => b[idx] === "");
+            if (preferred.length > 0) {
+                const pick = preferred[0];
+                b[pick] = "O";
+                const res = evaluateBoard(b);
+                if (res.status !== "playing") {
+                    finishAiGame(res);
+                } else {
+                    state.aiTurn = "X";
+                    sync3DBoard(b, null, null);
+                    updateHUD();
+                }
+            }
+        }
+
+        function finishAiGame(result) {
+            state.aiStatus = result.status;
+            state.aiWinner = result.winner;
+            state.aiWinLine = result.winLine;
+            if (result.status === "won") {
+                state.aiScores[result.winner]++;
+                playSound("win");
+            } else if (result.status === "draw") {
+                state.aiScores.draws++;
+                playSound("draw");
+            }
+            sync3DBoard(state.aiBoard, state.aiWinLine, state.aiWinner);
+            updateHUD();
+        }
+
+        // ============================================================================
+        // 7. FIREBASE AUTHENTICATION & FIRESTORE ROOM SYNCHRONIZATION
+        // ============================================================================
+        const appId = typeof __app_id !== "undefined" ? __app_id : "em1707-tictactoe-3d";
+        let db = null;
+        let auth = null;
+
+        function getRoomsCollectionRef() {
+            return collection(db, "artifacts", appId, "public", "data", "tictactoe_rooms");
+        }
+
+        function getRoomDocRef(code) {
+            return doc(db, "artifacts", appId, "public", "data", "tictactoe_rooms", code);
+        }
+
+        // ============================================================================
+        // 7B. ZERO-CONFIG GLOBAL P2P ENGINE (FOR GITHUB PAGES / EXTERNAL HOSTING)
+        // ============================================================================
+        const PEER_PREFIX = "em1707-ttt-room-";
+        const PEER_ICE_CONFIG = {
+            config: {
+                iceServers: [
+                    { urls: "stun:stun.l.google.com:19302" },
+                    { urls: "stun:stun1.l.google.com:19302" },
+                    { urls: "stun:stun2.l.google.com:19302" }
+                ]
+            }
+        };
+
+        function initGlobalP2PMode() {
+            state.netEngine = "p2p";
+            const randomHex = Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join("").toUpperCase();
+            state.user = { uid: `P2P-PILOT-${randomHex}` };
+            document.getElementById("my-full-uid").textContent = `${state.user.uid} (Global P2P)`;
+            const dot = document.getElementById("conn-dot");
+            dot.className = "w-2 h-2 rounded-full bg-emerald-400 shrink-0";
+
+            const listEl = document.getElementById("open-rooms-list");
+            const countEl = document.getElementById("open-rooms-count");
+            countEl.textContent = "Global P2P Ready";
+            listEl.innerHTML = `
+                <div class="text-xs text-cyan-300/90 text-center py-2.5 px-2 bg-cyan-950/30 rounded-xl border border-cyan-500/20">
+                    <i class="fa-solid fa-earth-americas mr-1"></i>
+                    <strong>Global Cross-Country P2P Active:</strong> Click <strong>Host 3D Room</strong> to generate a 6-digit code, then send it to your friend anywhere in the world!
+                </div>
+            `;
+        }
+
+        function cleanupP2P() {
+            if (state.p2pConn) {
+                try { state.p2pConn.close(); } catch (e) {}
+                state.p2pConn = null;
+            }
+            if (state.p2pPeer) {
+                try { state.p2pPeer.destroy(); } catch (e) {}
+                state.p2pPeer = null;
+            }
+        }
+
+        function applyRoomUpdateP2P(newData, broadcast = false) {
+            const prevStatus = state.roomData?.status;
+            state.roomData = newData;
+
+            let parsedWinLine = null;
+            if (newData.winLine) {
+                try {
+                    parsedWinLine = typeof newData.winLine === "string" ? JSON.parse(newData.winLine) : newData.winLine;
+                } catch (e) {
+                    parsedWinLine = null;
+                }
+            }
+
+            if (prevStatus !== newData.status) {
+                if (newData.status === "won") playSound("win");
+                else if (newData.status === "draw") playSound("draw");
+                else if (prevStatus === "waiting" && newData.status === "playing") {
+                    playSound("join");
+                    showToast(`${newData.playerO?.name || "Friend"} connected from afar!`, "magenta");
+                }
+            }
+
+            if (newData.lastEmote && newData.lastEmote.timestamp > state.lastEmoteTimestamp) {
+                state.lastEmoteTimestamp = newData.lastEmote.timestamp;
+                spawnFloatingEmote(newData.lastEmote.text, newData.lastEmote.sender, newData.lastEmote.symbol);
+            }
+
+            sync3DBoard(newData.board || Array(9).fill(""), parsedWinLine, newData.winner);
+            updateHUD();
+
+            if (broadcast && state.p2pConn && state.p2pConn.open) {
+                state.p2pConn.send({ type: "SYNC", roomData: newData });
+            }
+        }
+
+        function setupP2PConnectionHandlers(conn) {
+            state.p2pConn = conn;
+
+            conn.on("data", (msg) => {
+                if (!msg || typeof msg !== "object") return;
+                if (msg.type === "JOIN" && state.roomData) {
+                    const updated = {
+                        ...state.roomData,
+                        playerO: msg.playerO,
+                        status: state.roomData.status === "waiting" ? "playing" : state.roomData.status,
+                        updatedAt: Date.now()
+                    };
+                    applyRoomUpdateP2P(updated, true);
+                } else if (msg.type === "SYNC" && msg.roomData) {
+                    applyRoomUpdateP2P(msg.roomData, false);
+                }
+            });
+
+            conn.on("close", () => {
+                showToast("Friend disconnected from the room.", "amber");
+            });
+        }
+
+        async function initFirebase() {
+            try {
+                let firebaseConfig = null;
+                if (typeof __firebase_config !== "undefined" && __firebase_config) {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                } else if (EXTERNAL_FIREBASE_CONFIG) {
+                    firebaseConfig = EXTERNAL_FIREBASE_CONFIG;
+                } else {
+                    // Hosted on GitHub Pages / Netlify without Firebase config -> Activate Global WebRTC P2P!
+                    initGlobalP2PMode();
+                    return;
+                }
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // RULE 3: Authenticate FIRST before any Firestore queries
+                if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        state.user = user;
+                        document.getElementById("my-full-uid").textContent = user.uid;
+                        const dot = document.getElementById("conn-dot");
+                        dot.className = "w-2 h-2 rounded-full bg-emerald-400 shrink-0";
+                        subscribeToPublicLobby();
+                    }
+                });
+            } catch (err) {
+                console.warn("Switching to Global P2P fallback:", err);
+                initGlobalP2PMode();
+            }
+        }
+
+        // Listen for Open Rooms in the Lobby (RULE 2: Simple collection query, filter in JS memory)
+        function subscribeToPublicLobby() {
+            if (!state.user || !db) return;
+            if (state.unsubscribeLobby) state.unsubscribeLobby();
+
+            const colRef = getRoomsCollectionRef();
+            state.unsubscribeLobby = onSnapshot(
+                colRef,
+                (snapshot) => {
+                    const openRooms = [];
+                    const now = Date.now();
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        // Filter in JS: rooms waiting for Player O created/updated within the last 2 hours
+                        if (data && data.status === "waiting" && !data.playerO && (now - (data.updatedAt || 0) < 7200000)) {
+                            openRooms.push(data);
+                        }
+                    });
+                    openRooms.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+                    renderOpenRoomsList(openRooms.slice(0, 8));
+                },
+                (error) => {
+                    console.error("Lobby snapshot error:", error);
+                }
+            );
+        }
+
+        function renderOpenRoomsList(rooms) {
+            const listEl = document.getElementById("open-rooms-list");
+            const countEl = document.getElementById("open-rooms-count");
+            countEl.textContent = `${rooms.length} open`;
+
+            if (rooms.length === 0) {
+                listEl.innerHTML = `<div class="text-xs text-slate-400 text-center py-3">No waiting rooms right now — click <strong>Host 3D Room</strong> above to start one!</div>`;
+                return;
+            }
+
+            listEl.innerHTML = "";
+            rooms.forEach(r => {
+                const row = document.createElement("div");
+                row.className = "flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/90 border border-cyan-500/25 hover:border-cyan-400/60 transition-all";
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="font-orbitron font-bold text-xs text-cyan-300 tracking-widest bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/30">${r.roomCode}</span>
+                        <div class="truncate">
+                            <div class="text-xs font-bold text-white truncate">Host: ${r.playerX?.name || "Pilot"}</div>
+                            <div class="text-[10px] text-slate-400 font-mono truncate">UID: ${r.playerX?.uid || ""}</div>
+                        </div>
+                    </div>
+                    <button class="join-quick-btn cyber-btn px-3 py-1 rounded-lg bg-fuchsia-500/20 hover:bg-fuchsia-500/40 border border-fuchsia-400/50 text-fuchsia-200 font-orbitron font-bold text-[10px] uppercase shrink-0">
+                        Join
+                    </button>
+                `;
+                row.querySelector(".join-quick-btn").addEventListener("click", () => {
+                    joinOnlineRoom(r.roomCode);
+                });
+                listEl.appendChild(row);
+            });
+        }
+
+        function generateRoomCode() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let code = "";
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        async function createOnlineRoom() {
+            if (!state.user) {
+                showToast("Initializing network, please wait a moment...", "amber");
+                return;
+            }
+            state.nickname = nameInput.value.trim() || state.nickname;
+            const roomCode = generateRoomCode();
+
+            const initialRoomData = {
+                roomCode,
+                board: Array(9).fill(""),
+                turn: "X",
+                startingTurn: "X",
+                status: "waiting", // "waiting" | "playing" | "won" | "draw"
+                winner: null,
+                winLine: null,
+                playerX: {
+                    uid: state.user.uid,
+                    name: state.nickname
+                },
+                playerO: null,
+                scores: { X: 0, O: 0, draws: 0 },
+                lastEmote: null,
+                updatedAt: Date.now()
+            };
+
+            // Global P2P Mode (GitHub Pages zero-setup)
+            if (state.netEngine === "p2p") {
+                cleanupP2P();
+                showToast("Opening global P2P room frequency...", "cyan");
+                const peer = new Peer(PEER_PREFIX + roomCode, PEER_ICE_CONFIG);
+                state.p2pPeer = peer;
+
+                peer.on("open", () => {
+                    state.mode = "online";
+                    state.roomCode = roomCode;
+                    state.lastAnimatedBoard = Array(9).fill("");
+                    clearAllPiecesFrom3D();
+                    applyRoomUpdateP2P(initialRoomData, false);
+                    closeLobbyModal();
+                    playSound("join");
+                    showToast(`Room ${roomCode} live! Send code to your friend anywhere.`, "cyan");
+                });
+
+                peer.on("connection", (conn) => {
+                    setupP2PConnectionHandlers(conn);
+                });
+
+                peer.on("error", (err) => {
+                    console.error("PeerJS host error:", err);
+                    showToast("Network busy, click Host Room again.", "amber");
+                });
+                return;
+            }
+
+            const roomRef = getRoomDocRef(roomCode);
+            try {
+                await setDoc(roomRef, initialRoomData);
+                subscribeToRoom(roomCode);
+                closeLobbyModal();
+                playSound("join");
+                showToast(`Room ${roomCode} created! Share the code with your friend.`, "cyan");
+            } catch (err) {
+                console.error("Create room error:", err);
+                showToast("Could not create room. Please try again.", "amber");
+            }
+        }
+
+        async function joinOnlineRoom(rawCode) {
+            if (!state.user) {
+                showToast("Connecting to server, please wait...", "amber");
+                return;
+            }
+            const code = (rawCode || "").trim().toUpperCase();
+            if (code.length < 4) {
+                showToast("Please enter a valid Room Code.", "amber");
+                return;
+            }
+
+            state.nickname = nameInput.value.trim() || state.nickname;
+
+            // Global P2P Mode (GitHub Pages zero-setup)
+            if (state.netEngine === "p2p") {
+                cleanupP2P();
+                showToast(`Connecting to Room ${code}...`, "cyan");
+                const peer = new Peer(PEER_ICE_CONFIG);
+                state.p2pPeer = peer;
+
+                peer.on("open", () => {
+                    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+                    setupP2PConnectionHandlers(conn);
+
+                    conn.on("open", () => {
+                        state.mode = "online";
+                        state.roomCode = code;
+                        state.lastAnimatedBoard = Array(9).fill("");
+                        clearAllPiecesFrom3D();
+                        closeLobbyModal();
+                        playSound("join");
+                        showToast(`Connected to Room ${code}!`, "cyan");
+                        conn.send({
+                            type: "JOIN",
+                            playerO: {
+                                uid: state.user.uid,
+                                name: state.nickname
+                            }
+                        });
+                    });
+
+                    conn.on("error", () => {
+                        showToast(`Could not reach Room "${code}".`, "magenta");
+                    });
+                });
+
+                peer.on("error", () => {
+                    showToast(`Room "${code}" not found or friend is offline.`, "magenta");
+                });
+                return;
+            }
+
+            const roomRef = getRoomDocRef(code);
+
+            try {
+                const snap = await getDoc(roomRef);
+                if (!snap.exists()) {
+                    showToast(`Room "${code}" not found. Check the code!`, "magenta");
+                    return;
+                }
+
+                const data = snap.data();
+                const myUid = state.user.uid;
+
+                // If we are not Player X and Player O slot is open, claim Player O!
+                if (data.playerX?.uid !== myUid && (!data.playerO || data.playerO.uid === myUid)) {
+                    await updateDoc(roomRef, {
+                        playerO: {
+                            uid: myUid,
+                            name: state.nickname
+                        },
+                        status: data.status === "waiting" ? "playing" : data.status,
+                        updatedAt: Date.now()
+                    });
+                }
+
+                subscribeToRoom(code);
+                closeLobbyModal();
+                playSound("join");
+                showToast(`Joined Room ${code}!`, "cyan");
+            } catch (err) {
+                console.error("Join room error:", err);
+                showToast("Error joining room. Please check your connection.", "amber");
+            }
+        }
+
+        function subscribeToRoom(code) {
+            if (!state.user || !db) return;
+            if (state.unsubscribeRoom) state.unsubscribeRoom();
+
+            state.mode = "online";
+            state.roomCode = code;
+            state.lastAnimatedBoard = Array(9).fill("");
+            clearAllPiecesFrom3D();
+
+            const roomRef = getRoomDocRef(code);
+            state.unsubscribeRoom = onSnapshot(
+                roomRef,
+                (snap) => {
+                    if (!snap.exists()) {
+                        showToast("Room was closed.", "amber");
+                        return;
+                    }
+                    const data = snap.data();
+                    const prevStatus = state.roomData?.status;
+                    state.roomData = data;
+
+                    // Parse serialized winLine if present
+                    let parsedWinLine = null;
+                    if (data.winLine) {
+                        try {
+                            parsedWinLine = typeof data.winLine === "string" ? JSON.parse(data.winLine) : data.winLine;
+                        } catch (e) {
+                            parsedWinLine = null;
+                        }
+                    }
+
+                    // Play status transition sounds
+                    if (prevStatus !== data.status) {
+                        if (data.status === "won") playSound("win");
+                        else if (data.status === "draw") playSound("draw");
+                        else if (prevStatus === "waiting" && data.status === "playing") {
+                            playSound("join");
+                            showToast(`${data.playerO?.name || "Friend"} joined the sector!`, "magenta");
+                        }
+                    }
+
+                    // Check incoming live Emotes
+                    if (data.lastEmote && data.lastEmote.timestamp > state.lastEmoteTimestamp) {
+                        state.lastEmoteTimestamp = data.lastEmote.timestamp;
+                        spawnFloatingEmote(data.lastEmote.text, data.lastEmote.sender, data.lastEmote.symbol);
+                    }
+
+                    sync3DBoard(data.board || Array(9).fill(""), parsedWinLine, data.winner);
+                    updateHUD();
+                },
+                (error) => {
+                    console.error("Room listener error:", error);
+                    showToast("Lost sync with room.", "amber");
+                }
+            );
+        }
+
+        function clearAllPiecesFrom3D() {
+            for (let i = 0; i < 9; i++) {
+                if (activePieceMeshes[i]) {
+                    piecesGroup.remove(activePieceMeshes[i]);
+                    activePieceMeshes[i] = null;
+                }
+                state.lastAnimatedBoard[i] = "";
+            }
+            clearWinBeam();
+        }
+
+        async function triggerRematch() {
+            if (state.mode === "ai") {
+                state.aiBoard = Array(9).fill("");
+                state.aiStartingTurn = state.aiStartingTurn === "X" ? "O" : "X";
+                state.aiTurn = state.aiStartingTurn;
+                state.aiStatus = "playing";
+                state.aiWinner = null;
+                state.aiWinLine = null;
+                clearAllPiecesFrom3D();
+                updateHUD();
+                if (state.aiTurn === "O") {
+                    setTimeout(makeCyberAiMove, 450);
+                }
+                return;
+            }
+
+            if (state.mode === "online" && state.roomData && state.user) {
+                const nextStarter = state.roomData.startingTurn === "X" ? "O" : "X";
+                const rematchPatch = {
+                    board: Array(9).fill(""),
+                    turn: nextStarter,
+                    startingTurn: nextStarter,
+                    status: state.roomData.playerO ? "playing" : "waiting",
+                    winner: null,
+                    winLine: null,
+                    updatedAt: Date.now()
+                };
+
+                if (state.netEngine === "p2p") {
+                    clearAllPiecesFrom3D();
+                    applyRoomUpdateP2P({ ...state.roomData, ...rematchPatch }, true);
+                    return;
+                }
+
+                try {
+                    const roomRef = getRoomDocRef(state.roomCode);
+                    await updateDoc(roomRef, rematchPatch);
+                } catch (e) {
+                    console.error("Rematch error:", e);
+                }
+            }
+        }
+
+        // ============================================================================
+        // 8. HUD & MINI 2D PAD RENDERING
+        // ============================================================================
+        const miniGridContainer = document.getElementById("mini-grid-cells");
+        const miniCellButtons = [];
+        for (let i = 0; i < 9; i++) {
+            const btn = document.createElement("button");
+            btn.className = "rounded-lg bg-slate-900/90 border border-slate-700 hover:border-cyan-400 font-orbitron font-black text-sm flex items-center justify-center transition-all";
+            btn.addEventListener("click", () => handleCellClick(i));
+            miniGridContainer.appendChild(btn);
+            miniCellButtons.push(btn);
+        }
+
+        function updateHUD() {
+            const modeBadge = document.getElementById("mode-badge");
+            const roomBar = document.getElementById("room-bar");
+            const gameHudTop = document.getElementById("game-hud-top");
+            const waitingBanner = document.getElementById("waiting-friend-banner");
+            const resultBanner = document.getElementById("result-banner");
+            const cardX = document.getElementById("card-player-x");
+            const cardO = document.getElementById("card-player-o");
+            const turnBadge = document.getElementById("turn-indicator-badge");
+            const subStatus = document.getElementById("sub-status-text");
+
+            if (state.mode === "lobby") {
+                modeBadge.textContent = "LOBBY";
+                roomBar.classList.add("hidden");
+                gameHudTop.classList.add("hidden");
+                resultBanner.classList.add("hidden");
+                return;
+            }
+
+            gameHudTop.classList.remove("hidden");
+
+            let board = Array(9).fill("");
+            let turn = "X";
+            let status = "waiting";
+            let winner = null;
+            let scores = { X: 0, O: 0, draws: 0 };
+            let pX = { name: state.nickname, uid: state.user?.uid || "Local-User" };
+            let pO = { name: "Cyber-AI", uid: "AI-SYNTH-CORE" };
+
+            if (state.mode === "ai") {
+                modeBadge.textContent = "VS AI";
+                roomBar.classList.add("hidden");
+                waitingBanner.classList.add("hidden");
+                board = state.aiBoard;
+                turn = state.aiTurn;
+                status = state.aiStatus;
+                winner = state.aiWinner;
+                scores = state.aiScores;
+            } else if (state.mode === "online" && state.roomData) {
+                const r = state.roomData;
+                modeBadge.textContent = "ONLINE";
+                roomBar.classList.remove("hidden");
+                document.getElementById("hud-room-code").textContent = r.roomCode;
+                document.getElementById("banner-room-code").textContent = r.roomCode;
+
+                board = r.board || Array(9).fill("");
+                turn = r.turn || "X";
+                status = r.status || "waiting";
+                winner = r.winner;
+                scores = r.scores || { X: 0, O: 0, draws: 0 };
+                pX = r.playerX || { name: "Waiting...", uid: "---" };
+                pO = r.playerO || { name: "Waiting for Friend...", uid: "Share Room Code" };
+
+                if (!r.playerO) {
+                    waitingBanner.classList.remove("hidden");
+                } else {
+                    waitingBanner.classList.add("hidden");
+                }
+            }
+
+            // Update Player Cards & Full UIDs (Multi-user requirement)
+            const myUid = state.user?.uid;
+            document.getElementById("name-player-x").textContent = pX.name + (pX.uid === myUid ? " (You)" : "");
+            document.getElementById("uid-player-x").textContent = pX.uid;
+            document.getElementById("score-x").textContent = scores.X || 0;
+
+            document.getElementById("name-player-o").textContent = pO.name + (pO.uid === myUid ? " (You)" : "");
+            document.getElementById("uid-player-o").textContent = pO.uid;
+            document.getElementById("score-o").textContent = scores.O || 0;
+
+            document.getElementById("score-draws").textContent = scores.draws || 0;
+
+            // Active Turn Card Glow
+            cardX.classList.toggle("active-turn-cyan", status === "playing" && turn === "X");
+            cardO.classList.toggle("active-turn-magenta", status === "playing" && turn === "O");
+
+            // Update Center Turn Indicator & Result Banner
+            if (status === "waiting") {
+                turnBadge.textContent = "WAITING FOR FRIEND";
+                turnBadge.className = "font-orbitron font-bold text-xs sm:text-sm tracking-wider uppercase text-amber-300 neon-text-gold";
+                subStatus.textContent = "Send Room Code to start";
+                resultBanner.classList.add("hidden");
+            } else if (status === "playing") {
+                const isMyTurn = canLocalPlayerMove();
+                turnBadge.textContent = turn === "X" ? `${pX.name}'S TURN (X)` : `${pO.name}'S TURN (O)`;
+                turnBadge.className = `font-orbitron font-bold text-xs sm:text-sm tracking-wider uppercase ${
+                    turn === "X" ? "text-cyan-300 neon-text-cyan" : "text-fuchsia-300 neon-text-magenta"
+                }`;
+                subStatus.textContent = isMyTurn ? "Your Move! Click a 3D cell" : "Opponent is thinking...";
+                resultBanner.classList.add("hidden");
+            } else if (status === "won" || status === "draw") {
+                resultBanner.classList.remove("hidden");
+                const resTitle = document.getElementById("result-title");
+                const resSub = document.getElementById("result-subtitle");
+
+                if (status === "draw") {
+                    turnBadge.textContent = "STALEMATE DRAW";
+                    turnBadge.className = "font-orbitron font-bold text-xs sm:text-sm tracking-wider uppercase text-amber-300 neon-text-gold";
+                    resTitle.textContent = "COSMIC DRAW!";
+                    resTitle.className = "font-orbitron font-black text-xl sm:text-2xl tracking-wider uppercase text-amber-300 neon-text-gold";
+                    resSub.textContent = "Neither pilot yielded the sector. Play again!";
+                } else {
+                    const winnerName = winner === "X" ? pX.name : pO.name;
+                    turnBadge.textContent = `${winnerName} WINS!`;
+                    resTitle.textContent = `${winnerName} (${winner}) WINS!`;
+                    resTitle.className = `font-orbitron font-black text-xl sm:text-2xl tracking-wider uppercase ${
+                        winner === "X" ? "text-cyan-300 neon-text-cyan" : "text-fuchsia-300 neon-text-magenta"
+                    }`;
+                    resSub.textContent = "3D plasma alignment achieved! Ready for a rematch?";
+                }
+            }
+
+            // Update Mini 2D Pad Buttons
+            miniCellButtons.forEach((btn, idx) => {
+                const val = board[idx];
+                btn.textContent = val;
+                if (val === "X") {
+                    btn.className = "rounded-lg bg-cyan-950/80 border border-cyan-400 text-cyan-300 font-orbitron font-black text-sm flex items-center justify-center";
+                } else if (val === "O") {
+                    btn.className = "rounded-lg bg-fuchsia-950/80 border border-fuchsia-400 text-fuchsia-300 font-orbitron font-black text-sm flex items-center justify-center";
+                } else {
+                    btn.className = "rounded-lg bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-400 font-orbitron font-black text-sm flex items-center justify-center";
+                }
+            });
+        }
+
+        // ============================================================================
+        // 9. UI BUTTON LISTENERS
+        // ============================================================================
+        function openLobbyModal() {
+            document.getElementById("lobby-modal").classList.remove("hidden");
+            if (state.mode !== "lobby") {
+                document.getElementById("close-lobby-btn").classList.remove("hidden");
+            }
+        }
+
+        function closeLobbyModal() {
+            document.getElementById("lobby-modal").classList.add("hidden");
+        }
+
+        document.getElementById("create-room-btn").addEventListener("click", () => {
+            initAudio();
+            createOnlineRoom();
+        });
+
+        document.getElementById("join-room-btn").addEventListener("click", () => {
+            initAudio();
+            const code = document.getElementById("join-code-input").value;
+            joinOnlineRoom(code);
+        });
+
+        document.getElementById("join-code-input").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                initAudio();
+                joinOnlineRoom(e.target.value);
+            }
+        });
+
+        document.getElementById("start-ai-btn").addEventListener("click", () => {
+            initAudio();
+            if (state.unsubscribeRoom) {
+                state.unsubscribeRoom();
+                state.unsubscribeRoom = null;
+            }
+            state.nickname = nameInput.value.trim() || state.nickname;
+            state.mode = "ai";
+            state.aiBoard = Array(9).fill("");
+            state.aiTurn = "X";
+            state.aiStartingTurn = "X";
+            state.aiStatus = "playing";
+            state.aiWinner = null;
+            state.aiWinLine = null;
+            state.aiScores = { X: 0, O: 0, draws: 0 };
+            clearAllPiecesFrom3D();
+            closeLobbyModal();
+            updateHUD();
+            showToast("Cyber-AI Warmup Mode started!", "cyan");
+        });
+
+        document.getElementById("open-lobby-btn").addEventListener("click", openLobbyModal);
+        document.getElementById("close-lobby-btn").addEventListener("click", closeLobbyModal);
+
+        document.getElementById("copy-room-btn").addEventListener("click", () => {
+            if (state.roomCode) copyTextToClipboard(state.roomCode);
+        });
+
+        document.getElementById("banner-copy-btn").addEventListener("click", () => {
+            if (state.roomCode) copyTextToClipboard(state.roomCode);
+        });
+
+        document.getElementById("rematch-btn").addEventListener("click", () => {
+            triggerRematch();
+        });
+
+        document.getElementById("camera-view-btn").addEventListener("click", () => {
+            currentPresetIndex = (currentPresetIndex + 1) % camPresets.length;
+            const p = camPresets[currentPresetIndex];
+            camSpherical.targetTheta = p.theta;
+            camSpherical.targetPhi = p.phi;
+            camSpherical.autoRotate = !!p.autoRotate;
+            updateResponsiveCameraDistance();
+            document.getElementById("camera-label").textContent = p.name;
+        });
+
+        document.getElementById("toggle-2d-pad-btn").addEventListener("click", () => {
+            document.getElementById("mini-2d-pad").classList.toggle("hidden");
+        });
+
+        document.getElementById("sound-toggle-btn").addEventListener("click", () => {
+            state.soundEnabled = !state.soundEnabled;
+            const icon = document.getElementById("sound-icon");
+            icon.className = state.soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark text-slate-500";
+            if (state.soundEnabled) initAudio();
+        });
+
+        // Emote Reaction Buttons
+        document.querySelectorAll(".emote-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const emoteText = btn.getAttribute("data-emote");
+                const senderName = nameInput.value.trim() || state.nickname;
+                const mySym = getMySymbol();
+                const emotePayload = {
+                    text: emoteText,
+                    sender: senderName,
+                    symbol: mySym,
+                    timestamp: Date.now()
+                };
+
+                if (state.mode === "online" && state.roomCode && state.user) {
+                    if (state.netEngine === "p2p" && state.roomData) {
+                        applyRoomUpdateP2P({ ...state.roomData, lastEmote: emotePayload }, true);
+                        return;
+                    }
+                    if (db) {
+                        try {
+                            const roomRef = getRoomDocRef(state.roomCode);
+                            await updateDoc(roomRef, { lastEmote: emotePayload });
+                            return;
+                        } catch (e) {}
+                    }
+                }
+                spawnFloatingEmote(emoteText, senderName, mySym);
+            });
+        });
+
+        // ============================================================================
+        // 10. MAIN 3D ANIMATION LOOP (STARTED ON WINDOW.ONLOAD)
+        // ============================================================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsed = clock.getElapsedTime();
+
+            // Smooth Camera Spherical Interpolation
+            if (camSpherical.autoRotate && !isDragging) {
+                camSpherical.targetTheta += 0.004;
+            }
+            camSpherical.theta += (camSpherical.targetTheta - camSpherical.theta) * 0.08;
+            camSpherical.phi += (camSpherical.targetPhi - camSpherical.phi) * 0.08;
+            camSpherical.radius += (camSpherical.targetRadius - camSpherical.radius) * 0.08;
+
+            camera.position.x = camSpherical.radius * Math.sin(camSpherical.phi) * Math.sin(camSpherical.theta);
+            camera.position.y = camSpherical.radius * Math.cos(camSpherical.phi);
+            camera.position.z = camSpherical.radius * Math.sin(camSpherical.phi) * Math.cos(camSpherical.theta);
+            camera.lookAt(0, 0, 0);
+
+            // Gentle Floating Levitation of the 3D Board
+            boardGroup.position.y = Math.sin(elapsed * 1.6) * 0.14;
+            platformRing.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.015);
+
+            // Animate Placed 3D X and O Pieces
+            for (let i = 0; i < 9; i++) {
+                const piece = activePieceMeshes[i];
+                if (piece) {
+                    // Drop-in & Scale-in interpolation
+                    piece.position.y += (piece.userData.targetY - piece.position.y) * 0.18;
+                    piece.scale.x += (1 - piece.scale.x) * 0.18;
+                    piece.scale.y += (1 - piece.scale.y) * 0.18;
+                    piece.scale.z += (1 - piece.scale.z) * 0.18;
+
+                    if (piece.userData.isWinningPiece) {
+                        piece.rotation.y += 0.06;
+                        piece.position.y = 0.45 + Math.sin(elapsed * 6 + i) * 0.15;
+                    } else {
+                        piece.rotation.y = Math.sin(elapsed * 1.5 + i) * 0.08;
+                    }
+                }
+            }
+
+            // Pulse Ghost Hover Preview
+            if (hoverPreviewGroup.visible) {
+                hoverPreviewGroup.position.y = 0.32 + Math.sin(elapsed * 5) * 0.08;
+                hoverPreviewGroup.rotation.y = elapsed * 0.8;
+            }
+
+            // Pulse Winning Laser Beam
+            if (winBeamMesh) {
+                const pulse = 1 + Math.sin(elapsed * 10) * 0.25;
+                winBeamMesh.scale.set(pulse, 1, pulse);
+            }
+
+            // Update Burst Particles
+            for (let i = particleSystems.length - 1; i >= 0; i--) {
+                const sys = particleSystems[i];
+                const posAttr = sys.points.geometry.attributes.position;
+                for (let j = 0; j < sys.velocities.length; j++) {
+                    posAttr.array[j * 3] += sys.velocities[j].vx;
+                    posAttr.array[j * 3 + 1] += sys.velocities[j].vy;
+                    posAttr.array[j * 3 + 2] += sys.velocities[j].vz;
+                    sys.velocities[j].vy -= 0.004; // subtle gravity
+                }
+                posAttr.needsUpdate = true;
+                sys.life -= 0.025;
+                sys.points.material.opacity = Math.max(0, sys.life);
+                if (sys.life <= 0) {
+                    boardGroup.remove(sys.points);
+                    sys.points.geometry.dispose();
+                    sys.points.material.dispose();
+                    particleSystems.splice(i, 1);
+                }
+            }
+
+            // Slowly drift cosmic starfield
+            starField.rotation.y = elapsed * 0.02;
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function () {
+            initFirebase();
+            animate();
+        };
+    </script>
+</body>
+</html>
